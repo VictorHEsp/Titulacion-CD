@@ -19,5 +19,4 @@ __pycache__/
 !.env.example
 
 # Datos locales (los administraremos por separado)
-data/raw/
-data/interim/
+Data/
