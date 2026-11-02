@@ -1,249 +1,245 @@
 # Expansión de ECOBICI en la Ciudad de México
-## Propuesta metodológica — versión 1.0
+## Metodología implementada, evaluación y limitaciones
 
-**Proyecto de titulación:** Licenciatura en Ciencia de Datos  
-
-> **Propósito del documento.** Registrar los acuerdos iniciales sobre el problema, el alcance, las variables, las fuentes y el enfoque analítico. No representa resultados empíricos ni una metodología cerrada.
+**Proyecto de titulación:** Licenciatura en Ciencia de Datos, ITAM  
+**Corte de documentación:** noviembre de 2026  
+**Alcance:** documenta el análisis y la optimización desarrollados. No equivale a una validación operativa de nuevas estaciones ni garantiza la reproducción integral del repositorio desde cero.
 
 ---
 
 ## 1. Contexto y planteamiento del problema
 
-ECOBICI es un sistema de bicicletas compartidas cuya utilidad depende tanto de la demanda en los lugares donde se encuentran las estaciones como de la posibilidad de realizar trayectos entre múltiples puntos de una red. Una nueva estación puede atraer actividad, pero instalarla de manera aislada puede limitar su utilidad.
+ECOBICI constituye una alternativa de movilidad para desplazamientos urbanos. Su expansión enfrenta un intercambio: las zonas que podrían registrar mayor actividad no necesariamente coinciden con aquellas donde puede cubrirse a más habitantes que actualmente no tienen una estación cercana. También importa la relación entre estaciones nuevas y existentes.
 
-La expansión de ECOBICI plantea, por tanto, una decisión geográfica: **en qué zonas conviene incorporar nuevas estaciones** para atender una demanda potencial significativa y, simultáneamente, permitir que más habitantes de la Ciudad de México tengan acceso al sistema.
+Este trabajo busca **identificar zonas de expansión prioritarias** bajo un número fijo de estaciones nuevas, equilibrando la actividad potencial **predicha** y la cobertura poblacional incremental, con reglas explícitas de conectividad. Se trata de un instrumento cuantitativo de apoyo a la planeación; la decisión final requiere evaluación física y operativa.
 
-Este proyecto propone desarrollar una herramienta de apoyo a decisiones que combine análisis espacial, predicción de actividad de estaciones y evaluación de escenarios de expansión. **No busca sustituir los estudios de factibilidad operativa, presupuestal o de ingeniería vial** necesarios antes de instalar estaciones reales.
+## 2. Pregunta y objetivos
 
-## 2. Pregunta de investigación
+**Pregunta de investigación:** ¿En qué cuadrículas de 250 × 250 metros de la Ciudad de México conviene instalar `K` nuevas estaciones ECOBICI para equilibrar la actividad potencial predicha y la cobertura poblacional incremental, considerando restricciones de conectividad?
 
-**¿Qué zonas de la Ciudad de México presentan mayor potencial para la expansión de ECOBICI si se busca equilibrar la actividad esperada de las nuevas estaciones y la cobertura poblacional adicional, considerando su relación con la red existente?**
+**Objetivo general:** determinar conjuntos de zonas candidatas para ampliar ECOBICI, dadas las prioridades de cobertura y actividad, mediante predicción y selección espacial multicriterio.
 
-### 2.1 Objetivo general
+**Objetivos específicos:**
 
-Desarrollar una metodología de Ciencia de Datos y un prototipo interactivo que permitan identificar y comparar zonas candidatas para expandir ECOBICI en la Ciudad de México, equilibrando demanda potencial y cobertura poblacional adicional, con consideraciones de conectividad de la red.
+1. Describir la actividad observada de las estaciones y su relación con las características urbanas.
+2. Evaluar modelos para predecir los movimientos diarios de estaciones usando validación espacial.
+3. Caracterizar cuadrículas candidatas de 250 × 250 m y reconocer sus diferencias respecto a las estaciones observadas.
+4. Seleccionar `K` cuadrículas considerando cobertura adicional, actividad predicha y conectividad, y analizar la sensibilidad a los parámetros.
+5. Comunicar los escenarios mediante un tablero interactivo, como **medio de consulta de resultados**, no como objetivo sustantivo de investigación.
 
-### 2.2 Objetivos específicos
+El posible usuario institucional de la evidencia es la autoridad responsable de planear la expansión, como SEMOVI; los coeficientes y el número de nuevas estaciones representan decisiones de planeación.
 
-1. Describir espacialmente la actividad de las estaciones actuales de ECOBICI y sus características de entorno.
-2. Construir y evaluar modelos que estimen la **actividad diaria promedio** asociada con las características geográficas de estaciones existentes.
-3. Generar una cuadrícula de zonas candidatas y estimar para cada una indicadores de potencial de uso y cobertura poblacional adicional.
-4. Comparar combinaciones de zonas candidatas bajo distintos escenarios de expansión, tomando en cuenta la conectividad y evitando contar dos veces la cobertura superpuesta.
-5. Implementar un tablero geográfico que permita explorar recomendaciones por alcaldía y entender sus fundamentos y limitaciones.
+## 3. Alcance y unidades de análisis
 
-## 3. Alcance del proyecto
-
-| Dimensión | Decisión preliminar |
+| Aspecto | Implementación o decisión |
 |---|---|
-| Zona de estudio | Ciudad de México; la visualización permitirá filtrar por alcaldía. |
-| Datos históricos principales | Octubre de 2025 a septiembre de 2026 (12 meses completos, sujetos a control de calidad). |
-| Unidad de observación para entrenamiento | Estación existente de ECOBICI. |
-| Unidad geográfica de recomendación | Cuadrícula aproximada de **250 × 250 metros**. |
-| Área de influencia inicial | **500 metros** alrededor de una ubicación; medida provisional a contrastar mediante sensibilidad. |
-| Resultado analítico | Indicadores comparables de actividad potencial, población adicional cubierta y conectividad. |
-| Resultado aplicado | Tablero interactivo de escenarios de expansión por alcaldía. |
+| Región | Ciudad de México; filtro opcional por alcaldía (sin filtro: CDMX completa). |
+| Periodo histórico | Octubre de 2024–septiembre de 2026 (24 meses). |
+| Periodo para la variable objetivo | Octubre de 2025–septiembre de 2026 (365 días). |
+| Estaciones del catálogo | 677 identificadores; 670 estaciones con información suficiente para el modelo. |
+| Unidad del modelo predictivo | Una estación existente. |
+| Unidad de recomendación | Una cuadrícula de 250 × 250 m, representada analíticamente por su centroide. |
+| Candidatas | 12,954 cuadrículas después de excluir las ocupadas por estaciones. |
+| Número de nuevas estaciones | `K`, definido por el usuario; en los escenarios reportados, `K = 10`. La implementación documentada utiliza `K ≥ 10`. |
+| Distancias | Sistema proyectado EPSG:32614; 250 m de separación mínima y 500 m como umbral geométrico de conexión y cobertura. |
 
-**Distinción importante:** la cuadrícula de 250 × 250 m define dónde se evalúan zonas candidatas; los 500 m definen el entorno para calcular variables y la aproximación inicial a la cobertura. No son la misma escala.
+**Diferencia de escalas:** la celda de 250 m delimita una **zona candidata**; el radio de 500 m aproxima su cobertura y la posible conexión entre estaciones. Ninguna celda fija una coordenada de obra.
 
-El centroide de cada celda podría utilizarse como punto de referencia computacional, **no como coordenada definitiva de instalación**. De ser necesario, se restringirán las celdas a zonas geográficas elegibles antes de formular recomendaciones.
+## 4. Datos, integración y variable objetivo
 
-## 4. Objetivos analíticos y métricas
+### 4.1 Fuentes
 
-### 4.1 Variable objetivo del modelo predictivo
+- **ECOBICI, datos abiertos:** registros de viajes e inventario de estaciones. Se procesaron **39,690,611 registros** del periodo histórico de 24 meses.
+- **INEGI, Censo de Población y Vivienda 2020:** población por manzana urbana; se utilizaron **66,449 manzanas** tras la depuración.
+- **INEGI, DENUE:** **460,762 establecimientos** georreferenciados para indicadores de actividad económica.
+- **SEMOVI / datos abiertos de la CDMX:** infraestructura ciclista (inventario referido a marzo de 2025), estaciones del Metro y del Metrobús.
 
-Para cada estación existente `i`, se utilizará inicialmente el **promedio diario de movimientos**:
+Estas fuentes **no corresponden todas al mismo año**. Se utilizan como aproximaciones al entorno urbano del periodo analizado; sus diferencias temporales son una limitación.
 
-\[
-Y_i = \frac{I_i + F_i}{D_i}
-\]
+### 4.2 Movimientos diarios observados
 
-Donde:
+Para cada estación `i`, la variable objetivo usada en el entrenamiento es:
 
-- `I_i`: viajes que comenzaron en la estación `i` durante el periodo de estudio.
-- `F_i`: viajes que terminaron en la estación `i` durante el periodo de estudio.
-- `D_i`: número de días en los que la estación estuvo efectivamente operativa y es válida la observación; la forma de determinarlo dependerá de la disponibilidad de datos históricos de operación.
+$$
+Y_i = \frac{R_i + A_i}{365}
+$$
 
-La métrica incorpora la función de la estación como punto de **salida y llegada**. **No es una cantidad de viajes únicos de toda la red:** un trayecto típico genera un movimiento de origen y uno de destino. Tampoco equivale automáticamente a *viajes nuevos netos* que surgirían al expandir el sistema.
+Donde `R_i` representa los retiros y `A_i` los arribos registrados entre octubre de 2025 y septiembre de 2026. Se seleccionaron las 670 estaciones con información suficiente para ese periodo; otras siete quedaron fuera del conjunto predictivo.
 
-**Pendientes de validación:** identificación consistente de estaciones a lo largo del tiempo; estaciones nuevas, retiradas o reubicadas; fechas de operación; valores anómalos; periodos de baja disponibilidad de bicicletas o anclajes. Si no se obtienen los días efectivos de operación, se documentará y evaluará una aproximación, sin asumir que cualquier día sin viajes equivale a un día operativo.
+**Aclaración frente a la propuesta inicial:** el análisis implementado divide entre **365 días calendario**, no entre días efectivos de operación. Esto permite comparaciones uniformes, pero no corrige cierres, interrupciones ni posibles restricciones por falta de bicicletas o anclajes. La actividad observada no equivale a demanda latente y sumar retiros más arribos **no** equivale a contar viajes únicos o viajes netos adicionales.
 
-### 4.2 Cobertura poblacional adicional
+### 4.3 Nueve variables explicativas
 
-Se pretende estimar cuántos habitantes que actualmente **no cuentan con una estación dentro del umbral de acceso definido** pasarían a estar cubiertos al agregar nuevas estaciones.
-
-La cobertura marginal de un conjunto de nuevas ubicaciones debe considerar la **unión de las áreas cubiertas**, evitando contar doble a las personas que se encuentren dentro del alcance de más de una estación.
-
-La estimación inicial utilizará distancias geográficas de 500 m; una medición por red peatonal sería una mejora potencial, sujeta al tiempo y a la disponibilidad de datos. La población provendrá de información censal y requerirá una asignación espacial cuidadosa a áreas de cobertura.
-
-### 4.3 Conectividad de red
-
-La conexión con estaciones existentes o con otras estaciones propuestas se utilizará como criterio de elegibilidad, restricción o evaluación de escenarios. Se definirán más adelante los umbrales apropiados, sin presuponer que existe un número universal de estaciones necesario para que una zona funcione.
-
-## 5. Variables explicativas candidatas
-
-Las variables se medirán alrededor de las estaciones existentes y, de forma análoga, alrededor de las ubicaciones candidatas. Las distancias deberán calcularse en un **sistema de coordenadas proyectadas en metros**, no directamente sobre grados de latitud/longitud.
-
-| Grupo | Variable candidata | Operacionalización inicial | Fuente candidata | Prioridad |
-|---|---|---|---|---|
-| Demografía | Población cercana | Habitantes estimados dentro de 500 m | INEGI, Censo 2020 | Alta |
-| Demografía | Densidad poblacional | Habitantes por km² en el entorno | INEGI, Censo 2020 | Alta |
-| Actividad económica | Establecimientos cercanos | Conteo de unidades económicas dentro de 500 m | INEGI, DENUE | Alta |
-| Actividad económica | Comercios y servicios | Conteo o proporción por grandes categorías | INEGI, DENUE | Media |
-| Transporte público | Cercanía al Metro | Distancia a estación de Metro más próxima | Datos Abiertos CDMX | Alta |
-| Transporte público | Cercanía al Metrobús | Distancia a estación de Metrobús más próxima | Datos Abiertos CDMX | Alta |
-| Infraestructura ciclista | Cercanía a ciclovías | Distancia al tramo activo más próximo | SEMOVI / Datos Abiertos CDMX | Alta |
-| Red ECOBICI | Densidad de estaciones | Número de estaciones actuales dentro de 500 m | ECOBICI | Alta |
-| Red ECOBICI | Distancia a la red | Distancia a estación existente más cercana | ECOBICI | Alta |
-
-**Consideración metodológica:** variables como la densidad de estaciones cercanas pueden cambiar si se proponen varias estaciones nuevas. Las variables de red se definirán de forma consistente con cada escenario y no se confundirán observaciones históricas con configuraciones hipotéticas futuras.
-
-La capacidad de las estaciones se analizará como posible variable de control, siempre que pueda observarse y tratarse apropiadamente en zonas futuras; no se decidirá su inclusión automática antes de revisar los datos.
-
-### Variables excluidas de la primera versión
-
-No se modelarán explícitamente ingreso, equidad socioeconómica, seguridad vial, pendientes, tráfico vehicular, disponibilidad de espacio físico ni costos exactos de obra. Son factores potencialmente relevantes para decisiones reales y se reconocerán como límites del alcance, pero agregarlos ahora ampliaría demasiado el trabajo.
-
-## 6. Fuentes de datos propuestas
-
-| Fuente | Información esperada | Enlace | Verificación pendiente |
-|---|---|---|---|
-| ECOBICI — datos abiertos | CSV mensuales de viajes; información actual de estaciones mediante GBFS | https://ecobici.cdmx.gob.mx/datos-abiertos/ | Esquema, IDs, calidad y cambios históricos de estaciones. El feed GBFS es **actual**, no histórico. |
-| INEGI — Censo de Población y Vivienda 2020 | Población a escala AGEB/manzana, según indicador y disponibilidad | https://www.inegi.org.mx/app/scitel/Default?ev=10 | Descargar geometrías compatibles y verificar variables disponibles. |
-| INEGI — DENUE | Ubicación y actividad de establecimientos económicos | https://www.inegi.org.mx/app/mapa/denue/ | Versión y periodo de referencia; coordenadas y clasificación. |
-| Datos Abiertos CDMX — Metro | Localización de estaciones de Metro | https://datos.cdmx.gob.mx/dataset/lineas-y-estaciones-del-metro | Vigencia y estaciones efectivamente operativas. |
-| Datos Abiertos CDMX — Metrobús | Localización de estaciones de Metrobús | https://datos.cdmx.gob.mx/dataset/geolocalizacion-metrobus | Vigencia y estaciones efectivamente operativas. |
-| Datos Abiertos CDMX — infraestructura vial ciclista | Geometrías de tramos ciclistas y estado | https://datos.cdmx.gob.mx/dataset/infraestructura-vial-ciclista | Filtrar tramos activos; revisar fecha y cobertura. |
-
-**Nota de trazabilidad:** al descargar cada conjunto se registrarán fecha de acceso, versión, periodo de referencia, licencia, nombre de archivo y cualquier transformación realizada.
-
-## 7. Metodología propuesta
-
-### Fase 1. Obtención, limpieza e integración
-
-1. Descargar los 12 archivos mensuales de viajes del periodo inicial.
-2. Estandarizar formatos, fechas e identificadores de origen/destino; revisar viajes incompletos o inválidos.
-3. Obtener el inventario de estaciones y comprobar la consistencia temporal de sus coordenadas e identificadores.
-4. Incorporar datos censales, establecimientos, transporte público y ciclovías en un sistema geográfico común.
-5. Construir una tabla reproducible a nivel de estación con la variable objetivo y los predictores disponibles.
-
-### Fase 2. Análisis exploratorio
-
-- Distribución de la actividad diaria por estación y diferencias entre zonas.
-- Patrones temporales básicos: meses, días laborales y fines de semana, cuando sean útiles para explicar el dato agregado.
-- Relaciones exploratorias entre actividad y características del entorno.
-- Mapas de actividad, densidad de estaciones y cobertura actual.
-- Revisión de sesgos, valores extremos, datos faltantes y cobertura espacial de la muestra.
-
-### Fase 3. Modelado predictivo
-
-Se contrastará al menos un **modelo base sencillo** con uno o más enfoques que aporten valor incremental. Entre los candidatos:
-
-- **Baseline:** media global o una referencia simple que sirva para comparar modelos.
-- **Regresión de Poisson:** candidato natural para conteos, evaluando supuestos, sobredispersión y tratamiento de exposición/días operativos.
-- **Random Forest:** candidato flexible para patrones no lineales e interacciones.
-- **XGBoost:** opción adicional únicamente si se justifica por mejora verificable frente a las alternativas anteriores.
-
-Se evitará elegir una técnica solo por sofisticación. La decisión dependerá de la calidad y tamaño de los datos, el desempeño fuera de muestra y la interpretabilidad.
-
-**Validación:** se utilizarán pruebas de desempeño con separación espacial entre estaciones (por ejemplo, bloques geográficos), además de métricas de error apropiadas como MAE y RMSE. Las transformaciones y selecciones de variables se ajustarán exclusivamente dentro de los datos de entrenamiento de cada partición. Se examinará el desempeño en zonas con características diferentes a las utilizadas para entrenar.
-
-**Limitación esencial:** las estaciones existentes no constituyen una muestra aleatoria de toda la ciudad. El modelo predice actividad asociada a estaciones observadas bajo condiciones actuales; extrapolar a zonas nuevas implica incertidumbre y no prueba causalmente cuántos viajes *adicionales* producirá una instalación.
-
-### Fase 4. Evaluación espacial de candidatas
-
-1. Generar una cuadrícula de 250 × 250 m sobre el ámbito de estudio, usando una proyección en metros.
-2. Identificar las celdas candidatas y excluir, si procede, zonas claramente no elegibles a partir de datos disponibles.
-3. Calcular para cada celda los mismos predictores disponibles para estaciones existentes.
-4. Estimar potencial de actividad, señalar incertidumbre y marcar celdas que estén fuera del rango de condiciones observadas en entrenamiento.
-5. Estimar la población **adicional** a la que daría acceso una nueva estación representada por la celda.
-
-### Fase 5. Selección y comparación de escenarios
-
-Se partirá de la siguiente pregunta práctica: **si se incorporan `K` estaciones en determinada alcaldía, ¿qué conjunto de zonas candidatas ofrece el mejor equilibrio entre actividad esperada y cobertura adicional, respetando reglas básicas de conectividad?**
-
-La primera versión podrá utilizar una selección iterativa transparente, que actualice la cobertura adicional al elegir cada zona. Después se evaluará, si está justificado, una optimización más formal.
-
-No se fijarán todavía pesos definitivos para demanda y cobertura. Se podrán comparar distintos pesos o soluciones no dominadas para mostrar el intercambio entre objetivos. No se sumarán sin justificación las predicciones individuales como si fueran viajes nuevos independientes: puede existir sustitución de viajes, solapamiento de captación y cambios en la red.
-
-**Fuera del MVP:** recomendar de forma automática el *número óptimo* de nuevas estaciones. Para hacerlo defensiblemente sería necesario definir un criterio adicional, como presupuesto, costo marginal, umbral de beneficio o meta de cobertura.
-
-### Fase 6. Tablero interactivo
-
-**Versión mínima viable (MVP):**
-
-- Selección de alcaldía.
-- Elección del número de estaciones a incorporar (`K`).
-- Mapa con **cuadrículas recomendadas**, no coordenadas definitivas de obra.
-- Indicadores de actividad potencial, cobertura poblacional adicional y conectividad.
-- Comparación básica entre escenarios e información sobre supuestos y limitaciones.
-
-**Extensiones posibles:** controles para ajustar la prioridad relativa de ambos objetivos, visualización de frontera de Pareto, recomendación automática de cantidad de estaciones condicionada a un presupuesto u otra regla explícita.
-
-## 8. Evaluación de resultados
-
-El proyecto se evaluará en dos niveles:
-
-**Nivel predictivo:** desempeño fuera de muestra y bajo particiones espaciales; estabilidad de variables relevantes; sensibilidad a las decisiones de preprocesamiento.
-
-**Nivel de recomendaciones:** cobertura poblacional incremental, potencial de actividad, conectividad y robustez de las zonas sugeridas ante cambios en el radio de acceso, tamaño de cuadrícula, pesos de objetivos y número de estaciones propuestas. Un tablero atractivo no sustituye evidencia analítica.
-
-No se presentará una recomendación como una ubicación de instalación confirmada ni como un pronóstico causal de nuevos viajes sin evidencia adicional.
-
-## 9. Limitaciones y riesgos conocidos
-
-1. **Sesgo de selección:** las estaciones actuales se ubican en zonas previamente seleccionadas y pueden no representar territorios sin ECOBICI.
-2. **Cambios temporales:** la red y los hábitos de movilidad cambian; los datos de diferentes fuentes corresponden a fechas distintas.
-3. **Disponibilidad histórica:** la información actual de GBFS no equivale al historial de capacidad, ubicación y operación de cada estación.
-4. **Demanda observada vs. latente:** la actividad realizada puede estar condicionada por disponibilidad de bicicletas/anclajes, no solo por interés de los usuarios.
-5. **Cobertura aproximada:** un radio geométrico de 500 m no reproduce exactamente la distancia caminable real ni las barreras físicas.
-6. **Distribución de población:** estimar habitantes dentro de radios a partir de polígonos censales supone decisiones de asignación espacial y conlleva incertidumbre.
-7. **Interacción entre estaciones:** nuevas estaciones pueden redistribuir viajes existentes; la conectividad y el solapamiento importan.
-8. **Viabilidad física y económica:** no se comprobarán individualmente permisos, obras, seguridad, espacio disponible ni costos reales de instalación.
-
-## 10. Decisiones ya tomadas y decisiones abiertas
-
-### Acuerdos establecidos
-
-- Equilibrar **demanda potencial y cobertura poblacional**; no agregar equidad socioeconómica como objetivo explícito.
-- Medir inicialmente la actividad histórica por estación mediante **inicios + llegadas por día operativo**.
-- Estudiar toda la CDMX y permitir selección de alcaldía en el tablero.
-- Utilizar **cuadrículas de 250 × 250 m**, en lugar de prometer lugares exactos.
-- Comenzar con cinco familias de variables: demografía, actividad económica, transporte público, infraestructura ciclista y red ECOBICI.
-- Tratar la conectividad de la red como aspecto a considerar en la recomendación.
-- Empezar por un MVP que recomienda ubicaciones para un `K` indicado por el usuario.
-
-### Pendientes por resolver con evidencia
-
-- Cómo identificar correctamente días efectivos de operación y cambios históricos de estaciones.
-- Procedimiento concreto para asignar población censal a zonas y radios de cobertura.
-- Si el radio de 500 m es apropiado y qué tan sensibles son los resultados a él.
-- Definición operacional de conectividad y elegibilidad de celdas.
-- Selección final del algoritmo predictivo, según validación espacial.
-- Método concreto para balancear objetivos y comparar escenarios.
-- Qué restricciones adicionales se requerirían para determinar `K` automáticamente.
-
-## 11. Plan inmediato de ejecución
-
-| Etapa | Entregable |
+| Variable en los datos | Interpretación |
 |---|---|
-| Descarga y auditoría de fuentes | Inventario real de archivos, diccionarios y consistencia temporal. |
-| Dataset de estaciones y EDA | Tabla maestra por estación y mapas descriptivos. |
-| Ingeniería de variables geográficas | Predictores espaciales reproducibles. |
-| Modelos y evaluación | Baseline, alternativas justificadas y validación espacial. |
-| Cuadrículas y selección de escenarios | Tabla de zonas candidatas y recomendaciones comparables. |
-| Tablero y documentación | Prototipo funcional, metodología revisada y principales limitaciones. |
+| `poblacion_500m` | Habitantes en un radio de 500 m. |
+| `negocios_500m` | Establecimientos DENUE a 500 m. |
+| `personal_500m` | Personal ocupado aproximado en establecimientos a 500 m. |
+| `dist_metro` | Distancia al Metro más cercano. |
+| `dist_metrobus` | Distancia al Metrobús más cercano. |
+| `infra_ciclista_500m` | Longitud de infraestructura ciclista dentro de 500 m. |
+| `estaciones_ecobici_500m` | Número de estaciones ECOBICI existentes a 500 m. |
+| `universidades_500m` | Establecimientos de educación superior a 500 m. |
+| `dist_centro` | Distancia al Zócalo. |
 
-La secuencia es prioritaria; las fechas exactas se revisarán a medida que conozcamos la calidad y complejidad de las fuentes.
+Las mismas nueve características se calculan para los centroides de las cuadrículas candidatas. Los valores de `estaciones_ecobici_500m` en candidatas se calculan **con la red preexistente**, no con las estaciones propuestas en cada escenario.
+
+## 5. Cobertura poblacional y candidatas
+
+Se toma un punto representativo interior de cada manzana para asociarle su población censal. Se considera cubierta si ese punto se encuentra a **500 m o menos en línea recta** de alguna estación. La cobertura se calcula sobre la **unión** de áreas, sin duplicar habitantes alcanzados por varias estaciones.
+
+Con el catálogo de **677 estaciones**, la población estimada inicialmente cubierta es **1,167,905 personas**, equivalente al **12.77 %** de la población incorporada al análisis. Se construyeron **13,543** cuadrículas urbanas de 250 × 250 m; se retiraron **589** que contenían estaciones existentes, con **12,954 candidatas** restantes.
+
+Para cada candidata se construyó una matriz de qué manzanas no cubiertas podría incorporar. Durante la selección, la población disponible se actualiza después de cada decisión, de modo que el beneficio de cobertura se calcula **marginalmente**.
+
+La cobertura es una **aproximación residencial**, no una medida de accesibilidad peatonal real, utilización ni equidad socioeconómica.
+
+## 6. Modelado predictivo y validación
+
+Se compararon la predicción constante de la mediana, regresión lineal, Ridge, Random Forest, Gradient Boosting, XGBoost y Ridge polinómica. El modelo seleccionado para estimar actividad en candidatas fue **Random Forest**, con **300 árboles**, **mínimo de 3 observaciones por hoja** y **semilla 42**.
+
+### 6.1 Evaluación espacial
+
+Se aplicó **GroupKFold de cinco particiones**, agrupando las 670 estaciones en **28 bloques geográficos de 2 × 2 km**. Las métricas corresponden a predicciones de estaciones no utilizadas en el entrenamiento de su partición.
+
+| Métrica | Resultado |
+|---|---:|
+| MAE de referencia (mediana del entrenamiento) | 70.69 movimientos diarios |
+| MAE de Random Forest | **56.67 movimientos diarios** |
+| Reducción relativa del MAE frente a la referencia | **19.83 %** |
+| Actividad media observada en las 670 estaciones | 151.77 movimientos diarios |
+| Spearman global, real frente a predicho | **0.623** |
+| WAPE global | **37.33 %** |
+| Precision@10 %: estaciones del decil de mayor actividad identificadas | **21 de 67 (31.34 %)** |
+
+La mejora frente a la referencia **no fue uniforme entre particiones**; en una de ellas el Random Forest obtuvo un MAE ligeramente superior al de la mediana. En el decil más activo, el MAE aumentó a **156.02** y la actividad media se subestimó (368.55 observados frente a 213.01 predichos). Spearman por partición varió entre **0.359 y 0.744**.
+
+Ridge polinómica alcanzó MAE **56.15** mediante búsqueda **anidada** de parámetros, mientras que el 56.67 de Random Forest corresponde a la **configuración fija**; por tanto, no son evaluaciones estrictamente equivalentes. Al aplicar Ridge polinómica a candidatas aparecieron **801 valores negativos** y predicciones por encima de **14,301 movimientos diarios**. Se eligió Random Forest por su desempeño competitivo y por producir predicciones numéricamente más plausibles, **sin considerar esto una prueba de exactitud fuera de la red**.
+
+### 6.2 Robustez y dependencia de variables
+
+- Al excluir del entrenamiento estaciones a 500 m o menos de las de evaluación, el MAE de Random Forest pasó de **56.67 a 62.10** (referencia en este ejercicio: **71.28**). La prueba también reduce el tamaño de entrenamiento y no aísla únicamente la dependencia espacial.
+- Al emplear bloques de **1, 2 y 4 km**, los MAE medios fueron **54.71**, **56.67** y **56.83**; la variación entre particiones fue mayor para 4 km.
+- La **distancia al Zócalo** fue la variable más influyente en la evaluación por permutación; sin ella, el MAE pasó de **56.67 a 61.18**.
+- **No existe** un conjunto de prueba independiente de la validación cruzada ni valores observados de actividad en las nuevas cuadrículas propuestas.
+
+### 6.3 Aplicabilidad fuera de la red
+
+| Variable | Candidatas fuera del rango de entrenamiento |
+|---|---:|
+| Estaciones ECOBICI a 500 m | 12,142 (93.73 %) |
+| Distancia al Zócalo | 8,264 (63.79 %) |
+| Distancia al Metro | 7,035 (54.31 %) |
+| Distancia al Metrobús | 5,400 (41.69 %) |
+
+En la primera fila, **12,141** candidatas tienen cero estaciones existentes a 500 m (por debajo del mínimo de entrenamiento, que es uno) y **una** supera el máximo observado.
+
+La actividad media **predicha** pasa de **124.29 movimientos diarios** para candidatas a 500 m o menos de la red a **95.40** para aquellas a 2–5 km y **89.29** a más de 5 km. En validación sobre estaciones existentes, el modelo subestimó en promedio **7.37** movimientos diarios en el cuartil más céntrico y sobreestimó **12.75** en el cuartil más alejado del Zócalo (sesgo definido como real menos predicho).
+
+Estos resultados describen limitaciones de extrapolación; **no demuestran** cuál será el error ni si el modelo ordenará correctamente cuadrículas donde ECOBICI todavía no opera.
+
+## 7. Selección espacial y función objetivo
+
+Se buscan `K` cuadrículas bajo reglas de distancia, conectividad y, opcionalmente, un filtro por alcaldía. La función multicriterio conceptual es:
+
+$$
+\max_{S\in\mathcal F,\,|S|=K} F(S)
+= w_p\frac{\operatorname{Pob}(S)}{E_p}
++ w_d\frac{\sum_{j\in S} D_j}{E_d},
+\qquad w_p+w_d=1
+$$
+
+Donde `S` es el conjunto seleccionado, `Pob(S)` es la cobertura **incremental** respecto a la red actual y sin doble conteo, `D_j` la actividad diaria predicha para la cuadrícula `j`, y `\mathcal F` el conjunto de portafolios que cumplen las reglas. En la implementación se utilizaron como escalas de normalización los **percentiles 95 de candidatas elegibles**, `E_p ≈ 18,798.05` habitantes y `E_d ≈ 128.46` movimientos diarios.
+
+Los pesos **son coeficientes de puntuación**, no porcentajes de contribución efectiva al valor obtenido. La función describe el criterio que se intenta maximizar; **la implementación no resuelve exactamente este máximo**.
+
+### 7.1 Procedimiento y restricciones
+
+- **Separación mínima:** 250 m entre estaciones nuevas y respecto a estaciones existentes.
+- **Conexión:** distancia euclidiana de como máximo 500 m a la red original o a otra estación nueva conectada.
+- **Estrategia conectada:** cada estación elegida se integra geométricamente a la red ya existente, directa o indirectamente mediante otras nuevas.
+- **Estrategia mixta:** además de extensiones, puede formar **núcleos independientes** conectados internamente, de al menos **cinco** estaciones nuevas; el mínimo se ha contrastado también con **siete y diez**.
+- **Cobertura marginal:** después de incorporar cada estación o grupo, se actualizan las manzanas pendientes de cubrir.
+- **Selección heurística:** se comparan extensiones individuales y, en la mixta, grupos de nuevas estaciones con un puntaje relativo por estación; el proceso es iterativo y **no garantiza un óptimo global**.
+
+El centroide es una referencia geométrica. La conexión definida por 500 m en línea recta **no equivale a una conexión real sobre calles o ciclovías**.
+
+## 8. Resultados y sensibilidad de la optimización
+
+### 8.1 Escenario de referencia (`K = 10`, pesos 65/35)
+
+| Indicador | Exclusivamente conectada (referencia) | Mixta (alternativa) |
+|---|---:|---:|
+| Población incremental | **94,496** | **157,606** |
+| Movimientos diarios predichos, suma | **2,063.57** | **1,634.93** |
+| Núcleos independientes | **0** | **2**, de cinco estaciones cada uno |
+| Estaciones nuevas directamente a ≤ 500 m de la red original | **2** | **0** |
+
+La cobertura geográfica estimada pasa de **12.77 % a 13.80 %** con la conectada. La alternativa mixta cubre **63,110 habitantes más** pero suma **428.64 movimientos diarios predichos menos**. Sus dos núcleos están separados de la red original; la distancia media a esta fue aproximadamente **0.86 km** en el primero y **1.69 km** en el segundo.
+
+La conectada se adopta como **referencia metodológica** por su vínculo geométrico con la red original, no porque exista evidencia de superioridad operativa o predictiva. Los movimientos predichos **no son viajes netos adicionales**.
+
+### 8.2 Sensibilidad a los pesos
+
+Se evaluaron 21 combinaciones de coeficientes cobertura/actividad entre 100/0 y 0/100, con `K = 10`, para ambas estrategias. Algunos resultados ilustrativos:
+
+| Pesos | Cobertura conectada | Movimientos conectada | Cobertura mixta | Movimientos mixta |
+|---|---:|---:|---:|---:|
+| 70/30 | 125,287 | 1,745.49 | 157,606 | 1,634.93 |
+| 65/35 | 94,496 | 2,063.57 | 157,606 | 1,634.93 |
+| 60/40 | 87,621 | 2,146.88 | 99,466 | 2,030.37 |
+| 50/50 | 80,140 | 2,055.69 | 79,559 | 2,169.60 |
+
+El **65/35 es un escenario de referencia**, no una preferencia universal ni una solución matemáticamente óptima. En la mixta, al cambiar a 60/40 la cobertura cae de 157,606 a 99,466 y el nivel de actividad predicha crece de 1,634.93 a 2,030.37. La diferencia de cobertura entre la mixta y la conectada pasa de 63,110 a 11,845 habitantes. **Parte del contraste entre estrategias depende de la ponderación y de los saltos de la heurística**.
+
+### 8.3 Tamaño mínimo de los núcleos
+
+Se contrastaron mínimos de **5, 7 y 10** estaciones por núcleo, en escenarios de pesos 100/0, 75/25 y 50/50. Por ejemplo, con 100/0, el tamaño 7 produjo **155,295** habitantes incrementales y el tamaño 10 produjo **157,597**. La falta de monotonía entre esas soluciones ilustra que **la heurística no garantiza encontrar el mejor portafolio factible**. La tabla completa se conserva en el análisis de optimización y en el apéndice del informe académico.
+
+## 9. Supuestos y limitaciones
+
+| Supuesto de trabajo | Límite o riesgo | Verificación futura |
+|---|---|---|
+| Relaciones aprendidas de estaciones existentes aplicables a ubicaciones nuevas | Sesgo de selección y extrapolación fuera de la red | Piloto o estaciones inauguradas en años posteriores |
+| `(retiros + arribos) / 365` aproxima actividad diaria | Días no operativos y restricciones por bicicletas/anclajes | Días operativos y capacidad por estación |
+| Un punto de manzana a 500 m está cubierto | Barreras físicas y rutas reales | Distancias de red peatonal; radios alternativos |
+| Censo 2020 aproxima la distribución de población en 2025–2026 | Cambios demográficos desiguales | Datos actualizados y análisis de sensibilidad |
+| Movimientos predichos de candidatas permanecen fijos | Sustitución de viajes y complementariedad entre estaciones | Seguimiento antes/después de expansiones |
+| Un núcleo de cinco estaciones es una alternativa evaluable | No asegura infraestructura ni funcionamiento independiente | Evaluación de operación y redistribución de bicicletas |
+| Conexión euclidiana ≤ 500 m representa conectividad | No considera continuidad de ciclovías o seguridad | Análisis sobre la red vial/ciclista real |
+
+Además, no se incorporan restricciones presupuestales, permisos, capacidad de estación, disponibilidad física del sitio ni equidad socioeconómica como criterio explícito. El proyecto **prioriza ubicaciones para evaluación posterior**, no valida obras concretas.
+
+## 10. Estado de implementación y trabajo pendiente
+
+### Análisis implementados y documentados
+
+- Integración de fuentes, EDA y métricas de cobertura.
+- Entrenamiento y comparación de modelos, con validación cruzada espacial y evaluación de robustez.
+- Generación de cuadrículas y predicción de actividad para candidatas.
+- Heurística de escenarios conectados y mixtos; análisis de ponderaciones y tamaño de núcleos.
+- Preparación de datos de entrada del tablero y contraste del motor con el notebook en escenarios analizados.
+
+### Pendiente o no verificado como completo
+
+1. **Comparaciones de referencia e incertidumbre:** portafolios aleatorios y otras bases; intervalo para la suma de actividades predichas y la diferencia entre estrategias.
+2. **Presentación de resultados:** consolidación de mapas y figuras, además de revisión editorial de cifras y citas.
+3. **Reproducción del repositorio:** instrucciones probadas en un entorno limpio, dependencias fijadas, acceso a datos/archivos procesados, empaquetado en Docker y tablero accesible en línea.
+4. **Validación externa futura:** medición de actividad real de estaciones instaladas en zonas nuevas; la validación espacial sobre estaciones existentes no la sustituye.
+
+## 11. Archivos y fuentes
+
+Los notebooks principales del flujo son `EDA_v1`–`EDA_v6`, `Modelado_v1`, `Variables_v1_Candidatas` y `Optimizacion_v1`. El motor `motor_ecobici.py` se usa desde el notebook de optimización; dicho notebook exporta insumos hacia `../Data/Procesados/Tablero/`. **Esas rutas y su disponibilidad en el repositorio publicado deben comprobarse antes de afirmar que el proyecto se ejecuta desde cero**.
+
+Fuentes principales:
+
+- [ECOBICI — datos abiertos](https://ecobici.cdmx.gob.mx/datos-abiertos/)
+- [INEGI — Censo de Población y Vivienda 2020](https://www.inegi.org.mx/programas/ccpv/2020/)
+- [INEGI — DENUE](https://www.inegi.org.mx/app/mapa/denue/)
+- [Datos Abiertos CDMX — Metro](https://datos.cdmx.gob.mx/dataset/lineas-y-estaciones-del-metro)
+- [Datos Abiertos CDMX — Metrobús](https://datos.cdmx.gob.mx/dataset/geolocalizacion-metrobus)
+- [Datos Abiertos CDMX — infraestructura ciclista](https://datos.cdmx.gob.mx/dataset/infraestructura-vial-ciclista)
 
 ---
 
-## Referencias iniciales a consultar
-
-- ECOBICI, **Datos Abiertos**: https://ecobici.cdmx.gob.mx/datos-abiertos/
-- INEGI, **Censo 2020 / SCITEL**: https://www.inegi.org.mx/app/scitel/Default?ev=10
-- INEGI, **DENUE**: https://www.inegi.org.mx/app/mapa/denue/
-- Gobierno de CDMX, **líneas y estaciones del Metro**: https://datos.cdmx.gob.mx/dataset/lineas-y-estaciones-del-metro
-- Gobierno de CDMX, **geolocalización del Metrobús**: https://datos.cdmx.gob.mx/dataset/geolocalizacion-metrobus
-- Gobierno de CDMX, **infraestructura vial ciclista**: https://datos.cdmx.gob.mx/dataset/infraestructura-vial-ciclista
-
-*Documento de trabajo. Versión 1.0: las hipótesis y los métodos propuestos podrán revisarse a partir de la inspección y validación de datos.*
+*Esta documentación describe el método y los resultados disponibles al corte indicado. Las cifras son estimaciones sujetas a los supuestos y limitaciones expresados; no son predicciones verificadas de la operación de futuras estaciones.*
