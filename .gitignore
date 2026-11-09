@@ -37,3 +37,13 @@ data/processed/*
 !data/raw/
 data/raw/*
 !data/raw/README.md
+
+
+# Resultados regenerables
+outputs/
+Outputs/
+
+# Entorno virtual y archivos temporales
+Titulacion.venv/
+__pycache__/
+*.pyc
