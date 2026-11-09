@@ -1,0 +1,15 @@
+# Enviar a Docker solo lo necesario, sin los 24 CSV históricos ni el entorno local.
+**
+!requirements.txt
+!Makefile
+!src/
+!src/__init__.py
+!src/motor_ecobici.py
+!dashboard_ecobici.py
+!scripts/
+!scripts/quick.py
+!data/
+!data/processed/
+!data/processed/datos_modelo_ECOBICI.csv
+!data/processed/tablero/
+!data/processed/tablero/*

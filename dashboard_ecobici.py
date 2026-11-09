@@ -10,11 +10,11 @@ import pydeck as pdk
 from scipy.sparse import load_npz
 import streamlit as st
 
-from motor_ecobici import MotorEcobici
+from src.motor_ecobici import MotorEcobici
 
 
 BASE = Path(__file__).resolve().parent
-DATOS = BASE / 'Data' / 'Procesados' / 'Tablero'
+DATOS = BASE / 'data' / 'processed' / 'tablero'
 
 st.set_page_config(page_title='Expansión ECOBICI', page_icon='🚲', layout='wide')
 
@@ -31,7 +31,7 @@ def cargar():
     return motor, estaciones, alcaldias
 
 
-st.title('🚲 Expansión óptima de ECOBICI')
+st.title('🚲 Expansión de ECOBICI')
 st.caption('Herramienta exploratoria para comparar proyectos de instalación de nuevas estaciones en CDMX.')
 
 try:
@@ -50,7 +50,7 @@ with st.sidebar:
     alcaldia = None if alcaldia_ui == 'Toda CDMX' else alcaldia_ui
     peso = st.slider('Peso de cobertura poblacional (%)', 0, 100, 65, 5)
     st.caption(f'Peso de demanda estimada: {100-peso}%.')
-    estrategia = st.radio('Estrategia de conectividad', ['Mixta', 'Solo conectada'])
+    estrategia = st.radio('Estrategia de conectividad', ['Solo conectada', 'Mixta'])
     tamano = st.selectbox('Mínimo de estaciones por nuevo núcleo', [5, 7, 10], index=0,
                           disabled=(estrategia == 'Solo conectada'))
     ejecutar = st.button('Calcular recomendaciones', type='primary', use_container_width=True)
@@ -78,7 +78,7 @@ num_nucleos = int(resultado.loc[resultado['tipo_red'] == 'Núcleo independiente'
 c1, c2, c3, c4 = st.columns(4)
 c1.metric('Estaciones recomendadas', len(resultado))
 c2.metric('Habitantes adicionales cubiertos', f'{poblacion:,.0f}')
-c3.metric('Movimientos diarios estimados¹', f'{demanda:,.0f}')
+c3.metric('Movimientos diarios predichos', f'{demanda:,.0f}')
 c4.metric('Núcleos independientes', num_nucleos)
 
 # Generar puntos para el mapa, preservando ID y la clasificación de red final.

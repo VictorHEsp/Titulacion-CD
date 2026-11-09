@@ -2,6 +2,7 @@
 # Entorno virtual
 .venv/
 venv/
+Titulacion.venv/
 
 # Archivos temporales de Python
 __pycache__/
@@ -18,5 +19,21 @@ __pycache__/
 .env.*
 !.env.example
 
-# Datos locales (los administraremos por separado)
-Data/
+Reference papers/
+
+# Ignorar datos originales
+data/*
+
+# Incluir datos procesados necesarios para reproducibilidad
+!data/processed/
+data/processed/*
+!data/processed/*.csv
+!data/processed/*.gpkg
+
+# Incluir los seis archivos del tablero
+!data/processed/tablero/
+
+# Permitir documentar las fuentes originales
+!data/raw/
+data/raw/*
+!data/raw/README.md

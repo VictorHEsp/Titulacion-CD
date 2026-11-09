@@ -1,0 +1,21 @@
+services:
+  quick:
+    build: .
+    volumes:
+      - ./outputs:/app/outputs
+    command: ["make", "quick"]
+
+  dashboard:
+    build: .
+    ports:
+      - "8501:8501"
+    command:
+      - python
+      - -m
+      - streamlit
+      - run
+      - dashboard_ecobici.py
+      - --server.address=0.0.0.0
+      - --server.port=8501
+      - --server.headless=true
+      - --browser.gatherUsageStats=false
