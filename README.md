@@ -60,3 +60,17 @@ Abrir **http://localhost:8501**. El tablero permite elegir K, alcaldía, pondera
 La ejecución `quick` **comienza con datos intermedios versionados**: reevalúa los modelos sobre las 670 estaciones y vuelve a optimizar los escenarios a partir de las predicciones y matrices ya calculadas. **No descarga los 24 CSV originales ni reconstruye desde cero las 12,954 predicciones de candidatas**; para ese flujo completo se incluyen los notebooks y el inventario de fuentes.
 
 Los movimientos estimados no equivalen necesariamente a viajes nuevos netos. La extrapolación a zonas sin estaciones existentes presenta incertidumbre; la conectividad utiliza una aproximación geométrica y no incorpora por completo costos, permisos, seguridad ni condiciones físicas del sitio. Las ubicaciones son **recomendaciones de planeación**, no puntos definitivos de instalación.
+
+
+## Aplicación interactiva
+
+El tablero permite explorar escenarios de expansión de ECOBICI,
+seleccionando el número de estaciones nuevas (K), el área geográfica,
+las ponderaciones de los objetivos y la estrategia de conectividad.
+
+**Acceder al tablero:**
+https://ecobici-expansion-cdmx.streamlit.app/
+
+La aplicación utiliza datos procesados y predicciones previamente
+calculadas. Los resultados principales de la investigación pueden
+reproducirse de manera independiente mediante Docker.
